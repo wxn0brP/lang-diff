@@ -1,0 +1,24 @@
+{
+	"name": "@wxn0brp/lang-diff",
+	"version": "0.0.1",
+	"main": "src/index.ts",
+	"description": "",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/wxn0brP/lang-diff.git"
+	},
+	"bin": {
+		"lang-diff": "./src/index.ts"
+	},
+	"homepage": "https://github.com/wxn0brP/lang-diff",
+	"author": "wxn0brP",
+	"license": "MIT",
+	"type": "module",
+	"scripts": {
+		"bun": "bun run src/index.ts"
+	},
+	"devDependencies": {
+		"@types/bun": "*",
+		"typescript": "*"
+	}
+}
