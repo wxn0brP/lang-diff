@@ -19,7 +19,7 @@ bun add -g github:wxn0brP/lang-diff
 ```
 or
 ```bash
-imgr lang-diff
+ingr lang-diff
 ```
 
 ## Usage
