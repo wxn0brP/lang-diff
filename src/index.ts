@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import * as fs from "fs";
+import { join } from "node:path";
 import { parseArgs } from "node:util";
 
 interface LanguageFiles {
@@ -11,6 +12,8 @@ const { values, positionals: ignore } = parseArgs({
     options: {
         langDir: { type: "string", short: "l", default: "." },
         extraSummary: { type: "boolean", short: "e", default: false },
+        parser: { type: "string", short: "p", default: "json" },
+        ext: { type: "string", short: "x" },
     },
     allowPositionals: true,
 });
@@ -28,17 +31,33 @@ if (!fs.existsSync(config.langDir)) {
     process.exit(1);
 }
 
+let parserPath = values.parser;
+const localPath = join(process.cwd(), parserPath + ".ts");
+const prePath = join(import.meta.dirname, parserPath + ".ts");
+if (fs.existsSync(localPath)) parserPath = localPath;
+else if (fs.existsSync(prePath)) parserPath = prePath;
+
+console.log(`💜 Loading parser ${parserPath}`);
+const parser = await import(parserPath);
+const parserFn = parser.default;
+if (!parserFn || typeof parserFn !== "function")
+    throw new Error(`The parser "${parserPath}" does not export a valid function!`);
+
+const ext = values.ext || parser.ext;
+if (!ext)
+    throw new Error(`The parser "${parserPath}" does not export a valid extension!`);
+
 const files = fs
     .readdirSync(config.langDir)
-    .filter(file => file.endsWith(".json"))
+    .filter(file => file.endsWith("." + ext))
     .filter(file => {
         if (ignore.includes(file)) return false;
-        if (ignore.includes(file.replace(".json", ""))) return false;
+        if (ignore.includes(file.replace("." + ext, ""))) return false;
         return true;
     });
 
 if (files.length === 0) {
-    console.error(`No .json files found in the directory "${config.langDir}"`);
+    console.error(`No .${ext} files found in the directory "${config.langDir}"`);
     process.exit(1);
 }
 
@@ -49,7 +68,8 @@ const allKeys = new Set<string>();
 for (const file of files) {
     const filePath = `${config.langDir}/${file}`;
     try {
-        const content = await JSON.parse(fs.readFileSync(filePath, "utf-8")) as Record<string, any>;
+        const raw = fs.readFileSync(filePath, "utf-8");
+        const content = await parserFn(raw);
         languageData[file] = content;
 
         Object.keys(content).forEach(key => allKeys.add(key));
@@ -59,7 +79,7 @@ for (const file of files) {
 }
 
 if (Object.keys(languageData).length === 0) {
-    console.error("No JSON files were successfully read");
+    console.error(`No .${ext} files were successfully read`);
     process.exit(1);
 }
 
